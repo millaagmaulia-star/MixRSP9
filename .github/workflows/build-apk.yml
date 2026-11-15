@@ -13,16 +13,16 @@ jobs:
     - name: Checkout kode sumber
       uses: actions/checkout@v4
 
-    - name: Ekstrak file ZIP proyek
+    - name: Ekstrak dan cek isi ZIP
       run: |
         unzip -q audiomaster-pro.zip -d proyek_ekstrak
-        cd proyek_ekstrak
-        if [ ! -f "gradlew" ]; then
-          SUBDIR=$(find . -maxdepth 2 -name "gradlew" -printf "%h\n" | head -n 1)
-          if [ -n "$SUBDIR" ]; then
-            mv "$SUBDIR"/* .
-          fi
-        fi
+        echo "=== DAFTAR FILE DI DALAM ZIP ==="
+        find proyek_ekstrak -maxdepth 3
+
+    - name: Siapkan Node.js dan Java
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
 
     - name: Siapkan Java JDK 17
       uses: actions/setup-java@v4
@@ -30,16 +30,37 @@ jobs:
         java-version: '17'
         distribution: 'temurin'
 
-    - name: Beri izin akses Gradle
-      working-directory: ./proyek_ekstrak
-      run: chmod +x gradlew
-
-    - name: Build Debug APK
-      working-directory: ./proyek_ekstrak
-      run: ./gradlew assembleDebug
+    - name: Konversi Web ke Android APK (Capacitor)
+      run: |
+        cd proyek_ekstrak
+        # Pindah ke subfolder jika file dibungkus dalam 1 folder utama
+        if [ $(ls -1 | wc -l) -eq 1 ] && [ -d "$(ls -1)" ]; then
+          cd "$(ls -1)"
+        fi
+        
+        # Jika ada package.json (React/Vite/Vue), build web-nya dulu
+        if [ -f "package.json" ]; then
+          npm install
+          npm run build
+        fi
+        
+        # Tentukan folder hasil web (dist, build, atau folder utama jika HTML biasa)
+        WEB_DIR="."
+        if [ -d "dist" ]; then WEB_DIR="dist"; fi
+        if [ -d "build" ]; then WEB_DIR="build"; fi
+        if [ -d "www" ]; then WEB_DIR="www"; fi
+        
+        # Bungkus menjadi proyek Android dan build APK
+        npm init -y
+        npm install @capacitor/core @capacitor/cli @capacitor/android
+        npx cap init "AudioMaster Pro" "com.audiomaster.pro" --web-dir="$WEB_DIR"
+        npx cap add android
+        cd android
+        chmod +x gradlew
+        ./gradlew assembleDebug
 
     - name: Unggah hasil APK
       uses: actions/upload-artifact@v4
       with:
         name: AudioMaster-Pro-APK
-        path: proyek_ekstrak/**/build/outputs/apk/debug/*.apk
+        path: proyek_ekstrak/**/android/app/build/outputs/apk/debug/*.apk
