@@ -17,10 +17,10 @@ jobs:
       run: |
         unzip -q audiomaster-pro.zip -d proyek_ekstrak
 
-    - name: Siapkan Node.js
+    - name: Siapkan Node.js 22
       uses: actions/setup-node@v4
       with:
-        node-version: '20'
+        node-version: '22'
 
     - name: Siapkan Java JDK 17
       uses: actions/setup-java@v4
@@ -46,7 +46,15 @@ jobs:
         if [ ! -d "$WEB_DIR" ]; then WEB_DIR="."; fi
         
         npm install @capacitor/core @capacitor/cli @capacitor/android --legacy-peer-deps
-        npx cap init "AudioMaster Pro" "com.audiomaster.pro" --web-dir="$WEB_DIR"
+        
+        cat <<EOF > capacitor.config.json
+        {
+          "appId": "com.audiomaster.pro",
+          "appName": "AudioMaster Pro",
+          "webDir": "$WEB_DIR"
+        }
+        EOF
+        
         npx cap add android
         cd android
         chmod +x gradlew
