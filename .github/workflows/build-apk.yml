@@ -28,7 +28,7 @@ jobs:
         java-version: '21'
         distribution: 'temurin'
 
-    - name: Konversi Web ke Android APK (Capacitor)
+    - name: Konversi Web ke Android APK (Capacitor + Izin Mikrofon)
       run: |
         cd proyek_ekstrak
         if [ $(ls -1 | wc -l) -eq 1 ] && [ -d "$(ls -1)" ]; then
@@ -56,6 +56,16 @@ jobs:
         EOF
         
         npx cap add android
+        
+        # Tambahkan izin Mikrofon, Audio, dan Penyimpanan ke AndroidManifest.xml
+        MANIFEST="android/app/src/main/AndroidManifest.xml"
+        sed -i '/<uses-permission android:name="android.permission.INTERNET" \/>/a \
+            <uses-permission android:name="android.permission.RECORD_AUDIO" \/>\
+            <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" \/>\
+            <uses-permission android:name="android.permission.READ_MEDIA_AUDIO" \/>\
+            <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" \/>\
+            <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" \/>' "$MANIFEST"
+        
         cd android
         chmod +x gradlew
         ./gradlew assembleDebug
