@@ -13,13 +13,11 @@ jobs:
     - name: Checkout kode sumber
       uses: actions/checkout@v4
 
-    - name: Ekstrak dan cek isi ZIP
+    - name: Ekstrak file ZIP proyek
       run: |
         unzip -q audiomaster-pro.zip -d proyek_ekstrak
-        echo "=== DAFTAR FILE DI DALAM ZIP ==="
-        find proyek_ekstrak -maxdepth 3
 
-    - name: Siapkan Node.js dan Java
+    - name: Siapkan Node.js
       uses: actions/setup-node@v4
       with:
         node-version: '20'
@@ -33,26 +31,21 @@ jobs:
     - name: Konversi Web ke Android APK (Capacitor)
       run: |
         cd proyek_ekstrak
-        # Pindah ke subfolder jika file dibungkus dalam 1 folder utama
         if [ $(ls -1 | wc -l) -eq 1 ] && [ -d "$(ls -1)" ]; then
           cd "$(ls -1)"
         fi
         
-        # Jika ada package.json (React/Vite/Vue), build web-nya dulu
         if [ -f "package.json" ]; then
-          npm install
+          npm install --legacy-peer-deps
           npm run build
         fi
         
-        # Tentukan folder hasil web (dist, build, atau folder utama jika HTML biasa)
-        WEB_DIR="."
-        if [ -d "dist" ]; then WEB_DIR="dist"; fi
+        WEB_DIR="dist"
         if [ -d "build" ]; then WEB_DIR="build"; fi
         if [ -d "www" ]; then WEB_DIR="www"; fi
+        if [ ! -d "$WEB_DIR" ]; then WEB_DIR="."; fi
         
-        # Bungkus menjadi proyek Android dan build APK
-        npm init -y
-        npm install @capacitor/core @capacitor/cli @capacitor/android
+        npm install @capacitor/core @capacitor/cli @capacitor/android --legacy-peer-deps
         npx cap init "AudioMaster Pro" "com.audiomaster.pro" --web-dir="$WEB_DIR"
         npx cap add android
         cd android
